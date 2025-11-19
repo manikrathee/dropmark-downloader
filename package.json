@@ -1,0 +1,24 @@
+{
+  "name": "dropmark-downloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "dropmark-downloader": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "cli-progress": "^3.12.0",
+    "date-fns": "^4.1.0",
+    "fs-extra": "^11.3.2",
+    "inquirer": "^8.2.7",
+    "mime-types": "^3.0.1"
+  }
+}
