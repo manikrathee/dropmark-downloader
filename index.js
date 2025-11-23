@@ -30,10 +30,26 @@ async function fetchActivity() {
 }
 
 async function getCollectionsFromActivity() {
+  // First attempt to fetch all collections via the Dropmark API endpoint.
+  try {
+    const resp = await axios.get(`${BASE_URL}/collections.json`, { headers: authHeader });
+    const data = resp.data;
+    const cols = Array.isArray(data) ? data : data.collections || [];
+    if (cols.length) {
+      return cols.map(col => ({
+        id: col.id || col.collection_id,
+        name: col.name || col.collection_name || `Collection ${col.id}`,
+        url: col.url || `${BASE_URL}/${col.id}`
+      }));
+    }
+  } catch (e) {
+    // If the API call fails, we will fall back to the activity feed.
+  }
+
+  // Fallback: use activity feed to discover collections.
   console.log('Fetching activity feed to discover collections...');
   const activity = await fetchActivity();
   const collections = new Map();
-
   activity.forEach(item => {
     if (item.collection_id && item.collection_name) {
       collections.set(item.collection_id, {
@@ -43,7 +59,6 @@ async function getCollectionsFromActivity() {
       });
     }
   });
-
   return Array.from(collections.values());
 }
 
