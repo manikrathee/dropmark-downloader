@@ -13,14 +13,21 @@ const AUTH_USER = 'manikrathee@gmail.com';
 const AUTH_PASS = 'save and organize 18 72 63 ok';
 const BASE_URL = `https://${USERNAME}.dropmark.com`;
 
+const API_KEY = 'APKAITQYWVEN757ZA4KQ';
+
 const authHeader = {
-  Authorization: `Basic ${Buffer.from(`${AUTH_USER}:${AUTH_PASS}`).toString('base64')}`
+  Authorization: `Basic ${Buffer.from(`${AUTH_USER}:${AUTH_PASS}`).toString('base64')}`,
+  'X-Api-Key': API_KEY
 };
 
 async function fetchActivity() {
   try {
+    // Activity feed does not use X-Api-Key, only Basic Auth
+    const headers = {
+      Authorization: `Basic ${Buffer.from(`${AUTH_USER}:${AUTH_PASS}`).toString('base64')}`
+    };
     const response = await axios.get(`${BASE_URL}/activity.json`, {
-      headers: authHeader
+      headers: headers
     });
     return response.data;
   } catch (error) {
@@ -29,25 +36,33 @@ async function fetchActivity() {
   }
 }
 
-async function getCollectionsFromActivity() {
-  // First attempt to fetch all collections via the Dropmark API endpoint.
+async function getCollections() {
+  // Attempt to fetch all collections via the Dropmark Application API.
   try {
-    const resp = await axios.get(`${BASE_URL}/collections.json`, { headers: authHeader });
+    console.log('Fetching collections from Application API...');
+    const resp = await axios.get('https://api.dropmark.com/v1/collections', { headers: authHeader });
     const data = resp.data;
+
+    // The Application API returns an array of collections directly or an object with a collections key
     const cols = Array.isArray(data) ? data : data.collections || [];
+
     if (cols.length) {
+      console.log(`Found ${cols.length} collections via API.`);
       return cols.map(col => ({
-        id: col.id || col.collection_id,
-        name: col.name || col.collection_name || `Collection ${col.id}`,
+        id: col.id,
+        name: col.name || `Collection ${col.id}`,
         url: col.url || `${BASE_URL}/${col.id}`
       }));
     }
   } catch (e) {
-    // If the API call fails, we will fall back to the activity feed.
+    console.warn('Warning: Could not fetch full collection list from Application API (' + (e.response ? e.response.status : e.message) + ').');
+    if (e.response && e.response.data) {
+      console.warn('API Error:', JSON.stringify(e.response.data));
+    }
+    console.log('Falling back to recent activity feed...');
   }
 
   // Fallback: use activity feed to discover collections.
-  console.log('Fetching activity feed to discover collections...');
   const activity = await fetchActivity();
   const collections = new Map();
   activity.forEach(item => {
@@ -184,7 +199,7 @@ async function processCollection(collection, baseDir) {
 }
 
 async function main() {
-  const collections = await getCollectionsFromActivity();
+  const collections = await getCollections();
 
   if (collections.length === 0) {
     console.log('No collections found in activity feed.');
